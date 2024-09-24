@@ -43,7 +43,8 @@ class ParserTest {
 
     public static Stream<Arguments> should_parse_edifact_documentation_file() {
         return Stream.of(
-                Arguments.arguments("edifact_documentations/INVOIC_D.23A/INVOIC_D.23A", "INVOIC", "D", "23A", "UN", "16", "2023-07-21")
+                Arguments.arguments("edifact_documentations/INVOIC_D.23A/INVOIC_D.23A", "INVOIC", "D", "23A", "UN", "16", "2023-07-21"),
+                Arguments.arguments("edifact_documentations/ORDERS_D.22B/ORDERS_D.22B", "ORDERS", "D", "22B", "UN", "16", "2022-12-20")
         );
     }
 
