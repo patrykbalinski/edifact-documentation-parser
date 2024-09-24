@@ -1,25 +1,25 @@
 package pl.patrykbalinski.edifactdocumentationparser;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 public class Parser {
     static final Pattern SINGLE_SEGMENT_PATTERN = Pattern.compile("(^\\d{5})\\s+([A-Z]{3})\\s+(.*?)\\s+([MC])\\s+(\\d+).*$");
     static final Pattern SEGMENT_GROUP_PATTERN = Pattern.compile("^(\\d{5})\\s+---- ([A-Za-z ]+[0-9]+)\\s+.*?\\s+([MC])\\s+(\\d+).*$");
 
 
-    public static EdifactMessage parse(String input_filepath) throws IOException {
+    public static EdifactMessage parse(InputStream inputStream) throws IOException {
         EdifactMessage edifactMessage = new EdifactMessage();
 
         List<String> content;
-        try (Stream<String> lines = Files.lines(Paths.get(input_filepath))) {
-            content = lines.toList();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            content = reader.lines().toList();
         }
 
         edifactMessage.setType(content.get(33).substring(58));

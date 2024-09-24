@@ -6,7 +6,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.regex.Matcher;
 import java.util.stream.Stream;
 
@@ -16,21 +18,32 @@ class ParserTest {
 
     @ParameterizedTest
     @MethodSource
-    public void should_parse_edifact_documentation_file(String input_filepath) throws IOException {
-        EdifactMessage edifactMessage = Parser.parse(input_filepath);
+    public void should_parse_edifact_documentation_file(String input_filepath, String expectedType, String expectedVersion, String expectedRelease, String expectedControlAgency, String expectedRevision, String expectedDate) throws IOException {
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(input_filepath);
+        if (inputStream == null) {
+            throw new FileNotFoundException("File not found: " + input_filepath);
+        }
+
+        EdifactMessage edifactMessage = Parser.parse(inputStream);
 
         Gson gson = new GsonBuilder()
                 .setPrettyPrinting()
                 .serializeNulls()
-                .registerTypeAdapter(SegmentGroup.class, new SegmentGroupAdapter())
                 .create();
 
         System.out.println(gson.toJson(edifactMessage));
+
+        assertThat(edifactMessage.getType()).isEqualTo(expectedType);
+        assertThat(edifactMessage.getVersion()).isEqualTo(expectedVersion);
+        assertThat(edifactMessage.getRelease()).isEqualTo(expectedRelease);
+        assertThat(edifactMessage.getControlAgency()).isEqualTo(expectedControlAgency);
+        assertThat(edifactMessage.getRevision()).isEqualTo(expectedRevision);
+        assertThat(edifactMessage.getDate()).isEqualTo(expectedDate);
     }
 
     public static Stream<Arguments> should_parse_edifact_documentation_file() {
         return Stream.of(
-                Arguments.arguments("C:\\User Files\\7 - projekty\\Java\\edifact-documentation-parser\\src\\test\\resources\\edifact_documentations\\INVOIC_D.23A\\INVOIC_D.23A")
+                Arguments.arguments("edifact_documentations/INVOIC_D.23A/INVOIC_D.23A", "INVOIC", "D", "23A", "UN", "16", "2023-07-21")
         );
     }
 

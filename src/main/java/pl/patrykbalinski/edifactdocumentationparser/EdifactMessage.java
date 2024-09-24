@@ -9,8 +9,8 @@ import java.util.List;
 public class EdifactMessage {
     private String type;
     private String version;
-    private String Release;
-    private String ControlAgency;
+    private String release;
+    private String controlAgency;
     private String revision;
     private String date;
     private List<Segment> segments;
