@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import pl.patrykbalinski.edifactdocumentationparser.model.EdifactMessage;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -18,10 +19,10 @@ class ParserTest {
 
     @ParameterizedTest
     @MethodSource
-    public void should_parse_edifact_documentation_file(String input_filepath, String expectedType, String expectedVersion, String expectedRelease, String expectedControlAgency, String expectedRevision, String expectedDate) throws IOException {
-        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(input_filepath);
+    public void should_parse_edifact_documentation_file(String inputFilepath, String expectedType, String expectedVersion, String expectedRelease, String expectedControlAgency, String expectedRevision, String expectedDate) throws IOException {
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(inputFilepath);
         if (inputStream == null) {
-            throw new FileNotFoundException("File not found: " + input_filepath);
+            throw new FileNotFoundException("File not found: " + inputFilepath);
         }
 
         EdifactMessage edifactMessage = Parser.parse(inputStream);

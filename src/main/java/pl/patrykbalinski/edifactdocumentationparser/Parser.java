@@ -1,5 +1,10 @@
 package pl.patrykbalinski.edifactdocumentationparser;
 
+import pl.patrykbalinski.edifactdocumentationparser.model.EdifactMessage;
+import pl.patrykbalinski.edifactdocumentationparser.model.Segment;
+import pl.patrykbalinski.edifactdocumentationparser.model.SegmentGroup;
+import pl.patrykbalinski.edifactdocumentationparser.model.SingleSegment;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,14 +42,13 @@ public class Parser {
     public static List<Segment> parseMessageStructure(List<String> lines) {
         List<Segment> elements = new ArrayList<>();
 
-        List<SegmentGroup> groupStack = new ArrayList<>();  // Stos do śledzenia zagnieżdżonych grup
+        List<SegmentGroup> groupStack = new ArrayList<>();
         SegmentGroup currentGroup = null;
 
         for (String line : lines) {
             Matcher singleSegmentMatcher = SINGLE_SEGMENT_PATTERN.matcher(line);
             Matcher segmentGroupMatcher = SEGMENT_GROUP_PATTERN.matcher(line);
 
-            // Dopasowanie dla pojedynczego segmentu
             if (singleSegmentMatcher.matches()) {
                 String number = singleSegmentMatcher.group(1);
                 String code = singleSegmentMatcher.group(2);
@@ -54,7 +58,6 @@ public class Parser {
 
                 SingleSegment singleSegment = new SingleSegment(number, code, name, mandatory, maxOccurrences);
 
-                // Jeśli jesteśmy w grupie, dodajemy segment do bieżącej grupy
                 if (!groupStack.isEmpty()) {
                     currentGroup.addSegment(singleSegment);
                 } else {
@@ -62,7 +65,6 @@ public class Parser {
                 }
 
                 if (line.contains("-+")) {
-                    // Zdejmujemy ostatnią grupę ze stosu, zamykając ją
                     for (int i = 0; i < line.chars().filter(ch -> ch == '+').count(); i++) {
                         if (!groupStack.isEmpty()) {
                             groupStack.remove(groupStack.size() - 1);
@@ -72,19 +74,15 @@ public class Parser {
                 }
 
                 if (line.contains("-+")) {
-                    // Liczymy, ile razy występuje znak '+' w linii
                     long plusCount = line.chars().filter(ch -> ch == '+').count();
 
-                    // Zdejmujemy odpowiednią liczbę grup ze stosu
                     for (int i = 0; i < plusCount && !groupStack.isEmpty(); i++) {
                         groupStack.remove(groupStack.size() - 1);
                     }
 
-                    // Ustawiamy aktualną grupę na ostatni element stosu lub null, jeśli stos jest pusty
                     currentGroup = groupStack.isEmpty() ? null : groupStack.get(groupStack.size() - 1);
                 }
 
-                // Dopasowanie dla grupy segmentów
             } else if (segmentGroupMatcher.matches()) {
                 String groupNumber = segmentGroupMatcher.group(1);
                 String groupName = segmentGroupMatcher.group(2);
@@ -93,18 +91,14 @@ public class Parser {
 
                 SegmentGroup newGroup = new SegmentGroup(groupNumber, groupName, mandatory, maxOccurrences);
 
-                // Jeżeli mamy otwartą grupę, dodajemy nową grupę do bieżącej grupy
                 if (!groupStack.isEmpty()) {
                     currentGroup.addSegment(newGroup);
                 } else {
                     elements.add(newGroup);
                 }
 
-                // Nową grupę dodajemy na stos i ustawiamy jako bieżącą grupę
                 groupStack.add(newGroup);
                 currentGroup = newGroup;
-
-                // Zamykanie grupy segmentów
             }
         }
 

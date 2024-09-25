@@ -1,4 +1,4 @@
-package pl.patrykbalinski.edifactdocumentationparser;
+package pl.patrykbalinski.edifactdocumentationparser.model;
 
 
 import lombok.Getter;
