@@ -1,9 +1,6 @@
 package pl.patrykbalinski.edifactdocumentationparser;
 
-import pl.patrykbalinski.edifactdocumentationparser.model.EdifactMessage;
-import pl.patrykbalinski.edifactdocumentationparser.model.Segment;
-import pl.patrykbalinski.edifactdocumentationparser.model.SegmentGroup;
-import pl.patrykbalinski.edifactdocumentationparser.model.SingleSegment;
+import pl.patrykbalinski.edifactdocumentationparser.model.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,9 +12,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Parser {
-    static final Pattern SINGLE_SEGMENT_PATTERN = Pattern.compile("(^\\d{5})\\s+([A-Z]{3})\\s+(.*?)\\s+([MC])\\s+(\\d+).*$");
-    static final Pattern SEGMENT_GROUP_PATTERN = Pattern.compile("^(\\d{5})\\s+---- ([A-Za-z ]+[0-9]+)\\s+.*?\\s+([MC])\\s+(\\d+).*$");
-
+    static final Pattern SINGLE_SEGMENT_LINE_PATTERN = Pattern.compile("^(\\d{5})\\s+([A-Z]{3})\\s+(.*?)\\s+([MC])\\s+(\\d+).*$");
+    static final Pattern SEGMENT_GROUP_LINE_PATTERN = Pattern.compile("^(\\d{5})\\s+---- ([A-Za-z ]+[0-9]+)\\s+.*?\\s+([MC])\\s+(\\d+).*$");
+    static final Pattern SEGMENT_CLARIFICATION_HEADER_LINE_PATTERN = Pattern.compile("^(\\d{5})\\s+([A-Z]{3})?,? ?(.*)$");
+    static final Pattern SEGMENT_CLARIFICATION_DESCRIPTION_LINE_PATTERN = Pattern.compile("^\\s+(.*)$");
 
     public static EdifactMessage parse(InputStream inputStream) throws IOException {
         EdifactMessage edifactMessage = new EdifactMessage();
@@ -34,9 +32,45 @@ public class Parser {
         edifactMessage.setRevision(content.get(38).substring(58));
         edifactMessage.setDate(content.get(39).substring(58));
 
+        edifactMessage.setSegmentDetailsList(parseSegmentDetails(content.subList(content.indexOf("4.1    Segment clarification"), content.indexOf("4.2    Segment index (alphabetical sequence by tag)"))));
         edifactMessage.setSegments(parseMessageStructure(content.subList(content.indexOf("4.3    Message structure"), content.size())));
 
+        System.out.println(edifactMessage.getSegmentDetailsList());
+
         return edifactMessage;
+    }
+
+    public static List<SegmentDetails> parseSegmentDetails(List<String> lines) {
+        List<SegmentDetails> segmentDetailsList = new ArrayList<>();
+
+        String number = null;
+        String code = null;
+        String name = null;
+        StringBuilder description = new StringBuilder();
+
+        for (String line : lines) {
+            Matcher segmentClarificationHeaderMatcher = SEGMENT_CLARIFICATION_HEADER_LINE_PATTERN.matcher(line);
+            Matcher segmentClarificationDescriptionMatcher = SEGMENT_CLARIFICATION_DESCRIPTION_LINE_PATTERN.matcher(line);
+
+            if (segmentClarificationHeaderMatcher.matches()) {
+                if (name != null) {
+                    segmentDetailsList.add(new SegmentDetails(number, code, name, description.toString().trim()));
+                }
+
+                number = segmentClarificationHeaderMatcher.group(1);
+                code = segmentClarificationHeaderMatcher.group(2);
+                name = segmentClarificationHeaderMatcher.group(3);
+                description.setLength(0);
+            } else if (segmentClarificationDescriptionMatcher.matches()) {
+                description.append(line.trim()).append(" ");
+            }
+        }
+
+        if (code != null) {
+            segmentDetailsList.add(new SegmentDetails(number, code, name, description.toString().trim()));
+        }
+
+        return segmentDetailsList;
     }
 
     public static List<Segment> parseMessageStructure(List<String> lines) {
@@ -46,15 +80,15 @@ public class Parser {
         SegmentGroup currentGroup = null;
 
         for (String line : lines) {
-            Matcher singleSegmentMatcher = SINGLE_SEGMENT_PATTERN.matcher(line);
-            Matcher segmentGroupMatcher = SEGMENT_GROUP_PATTERN.matcher(line);
+            Matcher singleSegmentLineMatcher = SINGLE_SEGMENT_LINE_PATTERN.matcher(line);
+            Matcher segmentGroupLineMatcher = SEGMENT_GROUP_LINE_PATTERN.matcher(line);
 
-            if (singleSegmentMatcher.matches()) {
-                String number = singleSegmentMatcher.group(1);
-                String code = singleSegmentMatcher.group(2);
-                String name = singleSegmentMatcher.group(3).trim();
-                boolean mandatory = singleSegmentMatcher.group(4).equals("M");
-                int maxOccurrences = Integer.parseInt(singleSegmentMatcher.group(5));
+            if (singleSegmentLineMatcher.matches()) {
+                String number = singleSegmentLineMatcher.group(1);
+                String code = singleSegmentLineMatcher.group(2);
+                String name = singleSegmentLineMatcher.group(3).trim();
+                boolean mandatory = singleSegmentLineMatcher.group(4).equals("M");
+                int maxOccurrences = Integer.parseInt(singleSegmentLineMatcher.group(5));
 
                 SingleSegment singleSegment = new SingleSegment(number, code, name, mandatory, maxOccurrences);
 
@@ -83,11 +117,11 @@ public class Parser {
                     currentGroup = groupStack.isEmpty() ? null : groupStack.get(groupStack.size() - 1);
                 }
 
-            } else if (segmentGroupMatcher.matches()) {
-                String groupNumber = segmentGroupMatcher.group(1);
-                String groupName = segmentGroupMatcher.group(2);
-                boolean mandatory = segmentGroupMatcher.group(3).equals("M");
-                int maxOccurrences = Integer.parseInt(segmentGroupMatcher.group(4));
+            } else if (segmentGroupLineMatcher.matches()) {
+                String groupNumber = segmentGroupLineMatcher.group(1);
+                String groupName = segmentGroupLineMatcher.group(2);
+                boolean mandatory = segmentGroupLineMatcher.group(3).equals("M");
+                int maxOccurrences = Integer.parseInt(segmentGroupLineMatcher.group(4));
 
                 SegmentGroup newGroup = new SegmentGroup(groupNumber, groupName, mandatory, maxOccurrences);
 

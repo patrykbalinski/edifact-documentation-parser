@@ -13,9 +13,11 @@ public class EdifactMessage {
     private String controlAgency;
     private String revision;
     private String date;
+    private List<SegmentDetails> segmentDetailsList;
     private List<Segment> segments;
 
     public EdifactMessage() {
+        this.segmentDetailsList = new ArrayList<>();
         this.segments = new ArrayList<>();
     }
 }

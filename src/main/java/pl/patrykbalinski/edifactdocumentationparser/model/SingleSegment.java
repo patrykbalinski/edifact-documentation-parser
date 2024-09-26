@@ -7,11 +7,11 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class SingleSegment extends Segment {
-    String number;
+    private String number;
     private String code;
-    String name;
-    boolean mandatory;
-    int maxOccurrences;
+    private String name;
+    private boolean mandatory;
+    private int maxOccurrences;
 
     public SingleSegment(String number, String code, String name, boolean mandatory, int maxOccurrences) {
         this.number = number;

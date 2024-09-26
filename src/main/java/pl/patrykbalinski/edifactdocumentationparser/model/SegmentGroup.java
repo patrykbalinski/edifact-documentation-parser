@@ -7,12 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
-@Data()
+@Data
 public class SegmentGroup extends Segment {
-    String number;
-    String name;
-    boolean mandatory;
-    int maxOccurrences;
+    private String number;
+    private String name;
+    private boolean mandatory;
+    private int maxOccurrences;
     private final List<Segment> segments;
 
     public SegmentGroup(String number, String name, boolean mandatory, int maxOccurrences) {

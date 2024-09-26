@@ -19,7 +19,7 @@ class ParserTest {
 
     @ParameterizedTest
     @MethodSource
-    public void should_parse_edifact_documentation_file(String inputFilepath, String expectedType, String expectedVersion, String expectedRelease, String expectedControlAgency, String expectedRevision, String expectedDate) throws IOException {
+    public void should_parse_edifact_documentation_file(String inputFilepath, String expectedType, String expectedVersion, String expectedRelease, String expectedControlAgency, String expectedRevision, String expectedDate, int expectedSegmentDetailsNumber) throws IOException {
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream(inputFilepath);
         if (inputStream == null) {
             throw new FileNotFoundException("File not found: " + inputFilepath);
@@ -40,19 +40,20 @@ class ParserTest {
         assertThat(edifactMessage.getControlAgency()).isEqualTo(expectedControlAgency);
         assertThat(edifactMessage.getRevision()).isEqualTo(expectedRevision);
         assertThat(edifactMessage.getDate()).isEqualTo(expectedDate);
+        assertThat(edifactMessage.getSegmentDetailsList().size()).isEqualTo(expectedSegmentDetailsNumber);
     }
 
     public static Stream<Arguments> should_parse_edifact_documentation_file() {
         return Stream.of(
-                Arguments.arguments("edifact_documentations/INVOIC_D.23A/INVOIC_D.23A", "INVOIC", "D", "23A", "UN", "16", "2023-07-21"),
-                Arguments.arguments("edifact_documentations/ORDERS_D.22B/ORDERS_D.22B", "ORDERS", "D", "22B", "UN", "16", "2022-12-20")
+                Arguments.arguments("edifact_documentations/INVOIC_D.23A/INVOIC_D.23A", "INVOIC", "D", "23A", "UN", "16", "2023-07-21", 247),
+                Arguments.arguments("edifact_documentations/ORDERS_D.22B/ORDERS_D.22B", "ORDERS", "D", "22B", "UN", "16", "2022-12-20", 256)
         );
     }
 
     @ParameterizedTest
     @MethodSource
     public void segment_group_start_pattern_should_match_segment_group_start_line(String line, String expectedNumber, String expectedName, String expectedMandatory, int expectedMaxOccurrences) {
-        Matcher segmentMatcher = Parser.SEGMENT_GROUP_PATTERN.matcher(line);
+        Matcher segmentMatcher = Parser.SEGMENT_GROUP_LINE_PATTERN.matcher(line);
 
         assertThat(segmentMatcher.matches()).isTrue();
         assertThat(segmentMatcher.group(1)).isEqualTo(expectedNumber);
@@ -73,7 +74,7 @@ class ParserTest {
     @ParameterizedTest
     @MethodSource
     public void segment_group_start_pattern_should_not_match_single_segment_lines_and_space_lines(String line) {
-        assertThat(Parser.SEGMENT_GROUP_PATTERN.matcher(line).matches()).isFalse();
+        assertThat(Parser.SEGMENT_GROUP_LINE_PATTERN.matcher(line).matches()).isFalse();
     }
 
     public static Stream<Arguments> segment_group_start_pattern_should_not_match_single_segment_lines_and_space_lines() {
@@ -90,8 +91,8 @@ class ParserTest {
 
     @ParameterizedTest
     @MethodSource
-    public void single_segment_pattern_should_single_segment_line(String line, String expectedNumber, String expectedCode, String expectedName, String expectedMandatory, int expectedMaxOccurrences) {
-        Matcher segmentMatcher = Parser.SINGLE_SEGMENT_PATTERN.matcher(line);
+    public void single_segment_pattern_should_match_single_segment_line(String line, String expectedNumber, String expectedCode, String expectedName, String expectedMandatory, int expectedMaxOccurrences) {
+        Matcher segmentMatcher = Parser.SINGLE_SEGMENT_LINE_PATTERN.matcher(line);
 
         assertThat(segmentMatcher.matches()).isTrue();
         assertThat(segmentMatcher.group(1)).isEqualTo(expectedNumber);
@@ -101,7 +102,7 @@ class ParserTest {
         assertThat(Integer.parseInt(segmentMatcher.group(5))).isEqualTo(expectedMaxOccurrences);
     }
 
-    public static Stream<Arguments> single_segment_pattern_should_single_segment_line() {
+    public static Stream<Arguments> single_segment_pattern_should_match_single_segment_line() {
         return Stream.of(
                 Arguments.arguments("00010   UNH Message header                           M   1     ", "00010", "UNH", "Message header", "M", 1),
                 Arguments.arguments("00070   FTX Free text                                C   99    ", "00070", "FTX", "Free text", "C", 99),
@@ -114,11 +115,11 @@ class ParserTest {
 
     @ParameterizedTest
     @MethodSource
-    public void single_segment_pattern_should_not_match_segment_group_start_line_and_space_lines(String line) {
-        assertThat(Parser.SINGLE_SEGMENT_PATTERN.matcher(line).matches()).isFalse();
+    public void single_segment_line_pattern_should_not_match_segment_group_start_line_and_space_lines(String line) {
+        assertThat(Parser.SINGLE_SEGMENT_LINE_PATTERN.matcher(line).matches()).isFalse();
     }
 
-    public static Stream<Arguments> single_segment_pattern_should_not_match_segment_group_start_line_and_space_lines() {
+    public static Stream<Arguments> single_segment_line_pattern_should_not_match_segment_group_start_line_and_space_lines() {
         return Stream.of(
                 Arguments.arguments("00120       ---- Segment group 1  ------------------ C   99999------------+", "00120"),
                 Arguments.arguments("00270       ---- Segment group 3  ------------------ C   9999------------+|", "00270"),
@@ -127,6 +128,43 @@ class ParserTest {
                 Arguments.arguments(""),
                 Arguments.arguments("                                                                          |"),
                 Arguments.arguments("                                                                         ||")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    public void segment_clarification_header_line_pattern_should_match_segment_details_line(String line, String expectedNumber, String expectedCode, String expectedName) {
+        Matcher segmentMatcher = Parser.SEGMENT_CLARIFICATION_HEADER_LINE_PATTERN.matcher(line);
+
+        assertThat(segmentMatcher.matches()).isTrue();
+        assertThat(segmentMatcher.group(1)).isEqualTo(expectedNumber);
+        assertThat(segmentMatcher.group(2)).isEqualTo(expectedCode);
+        assertThat(segmentMatcher.group(3)).isEqualTo(expectedName);
+    }
+
+    public static Stream<Arguments> segment_clarification_header_line_pattern_should_match_segment_details_line() {
+        return Stream.of(
+                Arguments.arguments("00010   UNH, Message header", "00010", "UNH", "Message header"),
+                Arguments.arguments("00130      RFF, Reference", "00130", "RFF", "Reference"),
+                Arguments.arguments("00960         TAX, Duty/tax/fee details", "00960", "TAX", "Duty/tax/fee details"),
+                Arguments.arguments("00120   Segment group 1:  RFF-DTM-GIR-LOC-MEA-QTY-FTX-MOA-RTE", "00120", null, "Segment group 1:  RFF-DTM-GIR-LOC-MEA-QTY-FTX-MOA-RTE"),
+                Arguments.arguments("00270      Segment group 3:  RFF-DTM", "00270", null, "Segment group 3:  RFF-DTM")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    public void segment_clarification_description_line_pattern_should_match_segment_details_line(String line) {
+        Matcher segmentMatcher = Parser.SEGMENT_CLARIFICATION_DESCRIPTION_LINE_PATTERN.matcher(line);
+
+        assertThat(segmentMatcher.matches()).isTrue();
+    }
+
+    public static Stream<Arguments> segment_clarification_description_line_pattern_should_match_segment_details_line() {
+        return Stream.of(
+                Arguments.arguments("        A service segment starting and uniquely identifying a message. The"),
+                Arguments.arguments("           A segment identifying the reference by its number and where"),
+                Arguments.arguments("              A segment identifying and providing information relating to")
         );
     }
 }
