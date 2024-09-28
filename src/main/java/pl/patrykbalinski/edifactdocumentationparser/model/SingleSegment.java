@@ -2,11 +2,9 @@ package pl.patrykbalinski.edifactdocumentationparser.model;
 
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
-@EqualsAndHashCode(callSuper = true)
 @Data
-public class SingleSegment extends Segment {
+public class SingleSegment implements Segment {
     private String number;
     private String code;
     private String name;
