@@ -9,5 +9,4 @@ public class EdifactDocumentationParserApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(EdifactDocumentationParserApplication.class, args);
 	}
-
 }

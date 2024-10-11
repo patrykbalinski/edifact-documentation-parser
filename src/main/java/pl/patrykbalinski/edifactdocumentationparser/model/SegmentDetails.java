@@ -1,13 +1,14 @@
 package pl.patrykbalinski.edifactdocumentationparser.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Value;
 
-@Data
+@Value
 @AllArgsConstructor
 public class SegmentDetails {
-    private String number;
-    private String code;
-    private String name;
-    private String description;
+
+    String number;
+    String code;
+    String name;
+    String description;
 }

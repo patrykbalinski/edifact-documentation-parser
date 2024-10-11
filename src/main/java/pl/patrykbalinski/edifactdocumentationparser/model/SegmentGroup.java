@@ -1,25 +1,20 @@
 package pl.patrykbalinski.edifactdocumentationparser.model;
 
-import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Data
+@Value
+@RequiredArgsConstructor
 public class SegmentGroup implements Segment {
-    private String number;
-    private String name;
-    private boolean mandatory;
-    private int maxOccurrences;
-    private final List<Segment> segments;
 
-    public SegmentGroup(String number, String name, boolean mandatory, int maxOccurrences) {
-        this.number = number;
-        this.name = name;
-        this.mandatory = mandatory;
-        this.maxOccurrences = maxOccurrences;
-        this.segments = new ArrayList<>();
-    }
+    String number;
+    String name;
+    boolean mandatory;
+    int maxOccurrences;
+    List<Segment> segments = new ArrayList<>();
 
     public void addSegment(Segment segment) {
         this.segments.add(segment);
